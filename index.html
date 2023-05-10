@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Multi-Stop Route Mapping</title>
+  <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <style>
+    /* Set the size of the map */
+    #map {
+      height: 400px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <section>
+    <div class="container">
+      <h1 class="title">Multi-Stop Route Mapping</h1>
+      
+      <div class="columns">
+        <div class="column">
+
+            <!-- The form to input locations -->
+            <form id="location-form">
+            <div class="field">
+                <label for="start" class="label">Starting Location:</label>
+                <div class="control">
+                    <input type="text" id="start" class="input" required>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="waypoints" class="label">Waypoints (separate with commas):</label>
+                <div class="control">
+                    <input type="text" id="waypoints" class="input" required>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="end" class="label">Ending Location:</label>
+                <div class="control">
+                    <input type="text" id="end" class="input" required>
+                </div>
+            </div>
+
+            <div class="field is-grouped">
+                <div class="control">
+                    <button class="button is-link" type="submit">Show Route</button>
+                </div>
+            </div>
+
+            </form>
+
+             <!-- The distance container -->
+            <p id="distance"></p>
+            <P id="duration"></P>
+
+            <!-- The button to generate a sharable resulting map -->
+            <a id="share" target="_blank" href="#">Sharable Map</a>
+            
+        </div>
+        <div class="column">
+            <!-- The map container -->
+            <div id="map"></div>
+        </div>
+
+<!-- The script to load the Google Maps API and handle the form submission -->
+<script>
+    // Load the Google Maps API
+    function initMap() {
+        const directionsService = new google.maps.DirectionsService();
+        const directionsRenderer = new google.maps.DirectionsRenderer();
+        const map = new google.maps.Map(document.getElementById("map"), {
+            zoom: 8,
+            center: { lat: 53.164453, lng: -1.769691 },
+        });
+        directionsRenderer.setMap(map);
+        
+        // Handle form submission
+        document.getElementById("location-form").addEventListener("submit", (event) => {
+            event.preventDefault();
+            calculateAndDisplayRoute(directionsService, directionsRenderer);
+        });
+    }
+    
+    // Calculate and display the route
+    function calculateAndDisplayRoute(directionsService, directionsRenderer) {
+        const start = document.getElementById("start").value;
+        const waypoints = document.getElementById("waypoints").value.split(",");
+        const end = document.getElementById("end").value;
+        
+        const request = {
+            origin: start,
+            waypoints: waypoints.map((waypoint) => ({ location: waypoint.trim(), stopover: true })),
+            destination: end,
+            optimizeWaypoints: true,
+            travelMode: google.maps.TravelMode.DRIVING,
+        };
+        
+        directionsService.route(request, (result, status) => {
+            if (status === "OK") {
+            directionsRenderer.setDirections(result);
+
+            const route = result.routes[0];
+            let distanceInMiles = 0;
+            for (let i = 0; i < route.legs.length; i++) {
+                distanceInMiles += route.legs[i].distance.value * 0.000621371;
+            }
+            document.getElementById("distance").textContent = "Distance: " + distanceInMiles.toFixed(2) + " miles";
+            const duration = result.routes[0].legs.reduce((acc, leg) => acc + leg.duration.value, 0) / 60;
+            document.getElementById("duration").textContent = `Total Duration: ${duration.toFixed(2)} minutes`;
+            document.getElementById("share").href = "https://www.google.com/maps/dir/?api=1&origin=$" + encodeURI(request.origin) + "&destination=$" + encodeURI(request.destination) + "&waypoints=" + encodeURI(waypoints.join("|"));
+
+            // Display the distance and duration of the route
+            // const distance = result.routes[0].legs.reduce((acc, leg) => acc + leg.distance.value, 0) * 0.000621371;
+            // document.getElementById("distance").textContent = `Total Distance: ${distance.toFixed(2)} miles`;
+            // const duration = result.routes[0].legs.reduce((acc, leg) => acc + leg.duration.value, 0) / 60;
+            // document.getElementById("duration").textContent = `Total Duration: ${duration.toFixed(2)} minutes`;
+            } else {
+            window.alert("Directions request failed due to " + status);
+            }
+        });
+    }
+    </script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAgnCSxi807pGXhx8U0vZIMJ_M6DSkY8h4&callback=initMap" async defer></script>
+ </div>
+</div>
+</section>
+</body>
+</html>
